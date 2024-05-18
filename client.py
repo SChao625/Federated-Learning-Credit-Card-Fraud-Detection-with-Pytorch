@@ -3,7 +3,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 from tqdm import tqdm
-
+import torch
 
 class Client:
     def __init__(self, model, id):

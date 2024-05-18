@@ -29,6 +29,17 @@ class Server:
         for client in clients:
             client.update_global_model(self.global_model)
 
+    # def avg(self,c1,c2,c3):
+    #     weights = 1/3
+    #     avg_weights = {key: torch.zeros_like(c1[key]).float() for key in c1}
+    #
+    #     for key in avg_weights:
+    #         avg_weights[key] += weights * c1[key]
+    #         avg_weights[key] += weights * c2[key]
+    #         avg_weights[key] += weights * c3[key]
+    #     self.global_model.load_state_dict(avg_weights)
+
+
     def set_test_data(self, dataset, num_workers=4):
         self.dataset = dataset
         self.dataloader = DataLoader(self.dataset, batch_size=len(dataset), shuffle=True, num_workers=num_workers)

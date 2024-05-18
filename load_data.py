@@ -1,27 +1,47 @@
 from imblearn.over_sampling import SMOTE
-from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
-from torch.utils.data.dataset import Subset
-from torch.utils.data import DataLoader
+from sklearn.preprocessing import LabelEncoder
+from torch import Tensor
+from torch.utils.data import Dataset
 
 
 class Datas:
+
     def __init__(self):
         super().__init__()
-        pd_data = pd.read_csv("creditcard.csv")
-        data = np.array(pd_data, dtype=np.float32)
-        # print(pd_data)
-        x = data[::, 0:-1:]
-        y = data[::, -1::]
-        # 对第一列进行Sigmoid操作并替换
-        x[:, 0] = 1 / (1 + np.exp(-x[:, 0]))
-        # 对最后一列进行Sigmoid操作并替换
-        x[:, -1] = 1 / (1 + np.exp(-x[:, -1]))
+        df = pd.read_csv("carclaims.csv")
+        le = LabelEncoder()
+        cols = df.select_dtypes('O').columns
+        df[cols] = df[cols].apply(le.fit_transform)
+        df['Year'] = le.fit_transform(df.Year)
+
+        # df1 = df[df["Year"] == 2]
+        # df1 = df1.drop(
+        #     columns=['DayOfWeek', 'PolicyNumber', 'Year', 'Age', 'BasePolicy', 'Month', 'PolicyType', 'WeekOfMonth',
+        #              'MaritalStatus'])
+        # one_df1 = pd.get_dummies(df1, prefix_sep="_", columns=df1.columns)
+        # data1 = np.array(one_df1, dtype=np.float32)
+        # #print(data)
+        # x1 = data1[::, 0:-2:]
+        # y1 = data1[::, -2:-1:]
+        # smote = SMOTE()
+        # x1, y1 = smote.fit_resample(x1, y1)
+
+        df = df.drop(
+            columns=['DayOfWeek', 'PolicyNumber', 'Year', 'Age', 'BasePolicy', 'Month', 'PolicyType', 'WeekOfMonth',
+                     'MaritalStatus'])
+        one_df = pd.get_dummies(df, prefix_sep="_", columns=df.columns)
+        data = np.array(one_df, dtype=np.float32)
+        #print(data)
+        x = data[::, 0:-2:]
+        y = data[::, -2:-1:]
         smote = SMOTE()
         x, y = smote.fit_resample(x, y)
+
+        # self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x1, y1, test_size=0.2)
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.2)
 
     def get_data(self):
@@ -37,9 +57,10 @@ class Train_Data(Dataset):
         return len(self.x_train)
 
     def __getitem__(self, item):
-        feature = torch.rand([1, 256])
+        feature = torch.zeros([1, 256])
         for index, data in enumerate(self.x_train[item]):
-            feature[0][3 * index] = torch.tensor(data)
+            if 2 * index < 256:
+                feature[0][2 * index] = torch.tensor(data)
         return feature.reshape((1, 16, 16)), torch.tensor(np.expand_dims([self.y_train[item]], axis=0))
 
 
@@ -52,11 +73,11 @@ class Test_Data(Dataset):
         return len(self.x_test)
 
     def __getitem__(self, item):
-        feature = torch.rand([1, 256])
+        feature = torch.zeros([1, 256])
         for index, data in enumerate(self.x_test[item]):
-            feature[0][3 * index] = torch.tensor(data)
+            if 2 * index < 256:
+                feature[0][2 * index] = torch.tensor(data)
         return feature.reshape((1, 16, 16)), torch.tensor(np.expand_dims([self.y_test[item]], axis=0))
-
 
 # if __name__ == "__main__":
 #     datas = Datas()

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import _pickle as cPickle
 
 
 class Model(torch.nn.Module):
@@ -24,7 +25,3 @@ class Model(torch.nn.Module):
         return out
 
 
-# if __name__ == "__main__":
-#     model = Model()
-#     x = torch.zeros((10, 1, 16, 16))
-#     print(model(x))
