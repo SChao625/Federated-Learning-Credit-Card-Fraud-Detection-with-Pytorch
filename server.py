@@ -32,6 +32,7 @@ class Server:
     def set_test_data(self, dataset, num_workers=4):
         self.dataset = dataset
         self.dataloader = DataLoader(self.dataset, batch_size=len(dataset), shuffle=True, num_workers=num_workers)
+        print(self.dataloader.dataset)
 
     def get_model(self):
         # 返回全局模型参数
@@ -52,6 +53,7 @@ class Server:
             # 获取模型预测结果
             logits = self.global_model(x)
             # 计算损失
+            y = y.float()
             loss = self.lossfn(logits, y)
             # 对 logits 应用 sigmoid 激活函数
             probabilities = torch.sigmoid(logits)

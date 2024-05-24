@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
 from sklearn.preprocessing import LabelEncoder
-from torch import Tensor
 from torch.utils.data import Dataset
 
 
@@ -12,7 +11,7 @@ class Datas:
 
     def __init__(self):
         super().__init__()
-        df = pd.read_csv("carclaims.csv")
+        df = pd.read_csv("F:/project/Federated-Learning-Credit-Card-Fraud-Detection-with-Pytorch/carclaims.csv")
         le = LabelEncoder()
         cols = df.select_dtypes('O').columns
         df[cols] = df[cols].apply(le.fit_transform)
@@ -26,7 +25,7 @@ class Datas:
                      'MaritalStatus'])
         one_df1 = pd.get_dummies(df1, prefix_sep="_", columns=df1.columns)
         data1 = np.array(one_df1, dtype=np.float32)
-        #print(data)
+        # print(data)
         x1 = data1[::, 0:-2:]
         y1 = data1[::, -2:-1:]
         smote = SMOTE()
@@ -38,7 +37,7 @@ class Datas:
         one_df = pd.get_dummies(df, prefix_sep="_", columns=df.columns)
         data = np.array(one_df, dtype=np.float32)
 
-        #print(data)
+        # print(data)
         x = data[::, 0:-2:]
         y = data[::, -2:-1:]
         smote = SMOTE()
@@ -46,7 +45,6 @@ class Datas:
 
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x1, y1, test_size=0.2)
         # self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.2)
-
 
     def get_data(self):
         return self.x_train, self.x_test, self.y_train, self.y_test
