@@ -100,7 +100,7 @@ class LocalClient:
     def __init__(self, category, local_model):
         self.category = category
         self.local_model = local_model
-        self.optimizer = optim.SGD(self.local_model.parameters(), lr=0.001)
+        self.optimizer = optim.SGD(self.local_model.parameters(), lr=0.001, weight_decay=0.01)
         self.lossfn = F.binary_cross_entropy_with_logits
         self.dataset = None
         self.dataloader = None
@@ -109,10 +109,30 @@ class LocalClient:
         self.dataset = dataset
         self.dataloader = DataLoader(self.dataset, batch_size=batchsize, shuffle=True, num_workers=num_workers)
 
+    def test(self):
+        total_samples = 0
+        correct_predictions = 0
+
+        for (x, y) in self.dataloader:
+            # 获取模型预测结果
+            logits = self.local_model(x)
+            # 计算损失
+            y = y.float()
+            loss = self.lossfn(logits, y)
+            # 对 logits 应用 sigmoid 激活函数
+            probabilities = torch.sigmoid(logits)
+            # 将概率值转换为预测标签
+            predicted_labels = (probabilities > 0.5).float()
+            # 计算准确率
+            total_samples += y.size(0)
+            correct_predictions += (predicted_labels == y).sum().item()
+            accuracy = correct_predictions / total_samples
+            return self.category, loss, accuracy
+
     def local_train(self):
         lossfn = F.binary_cross_entropy_with_logits
         total_steps = len(self.dataloader) * local_epochs
-        # progress_bar = tqdm(total=total_steps, position=0, leave=True)  # 设置 leave=True 保留进度条在终端
+        progress_bar = tqdm(total=total_steps, position=0, leave=True)  # 设置 leave=True 保留进度条在终端
         for epoch in range(local_epochs):
             for step, (x, y) in enumerate(self.dataloader):
                 self.optimizer.zero_grad()
@@ -122,9 +142,9 @@ class LocalClient:
                 loss.backward()
                 self.optimizer.step()
                 # 更新进度条
-        #         progress_bar.update(1)
-        #         progress_bar.set_postfix({'id': self.category, 'Epoch': epoch, 'Step': step, 'Loss': loss.item()})
-        # progress_bar.close()
+                progress_bar.update(1)
+                progress_bar.set_postfix({'id': self.category, 'Epoch': epoch, 'Step': step, 'Loss': loss.item()})
+        progress_bar.close()
 
     def get_len(self):
         return len(self.dataset)
@@ -156,6 +176,7 @@ if __name__ == '__main__':
     processor = DataSetProcessor(df, category_col='RepNumber', label_col='FraudFound_0')
     clients = []
     dataset_tests = []
+    dataset_tests_per = []
     server = Server(model=copy.deepcopy(model))
 
     for category, data in processor.subsets.items():
@@ -165,9 +186,24 @@ if __name__ == '__main__':
         client.set_trian_data(dataset=dataset)
         clients.append(client)
         dataset_tests = ConcatDataset([dataset_tests, dataset_test])
-        server.set_test_data(dataset_test)
+        dataset_tests_per.append(dataset_test)
 
     server.set_test_data(dataset_tests)
+
+    server.set_model(torch.load('F:/project/model/16_personal_model_L2'))
+    #验证客户端测试数据集
+    # for category, data in processor.subsets.items():
+    #     dataset_test = CustomDataset(data['X_test'], data['y_test'])
+    #     client = LocalClient(category=category, local_model=copy.deepcopy(model))
+    #     client.set_trian_data(dataset=dataset_test)
+    #     clients.append(client)
+    #
+    # for client in clients:
+    #     client.update_global_model(server.global_model)
+    #     category, loss, accuracy = client.test()
+    #     print(f'category:{category}\tloss:{loss.item()}\taccuracy:{accuracy}')
+    #     with open('result.txt', 'a') as f:
+    #         f.writelines(f'{category}\t{loss.item()}\t{accuracy}\n')
 
     for round in range(rounds):
         print(f'Round {round + 1}/{rounds}')
@@ -175,7 +211,7 @@ if __name__ == '__main__':
             print(client.get_id())
             client.local_train()
         server.average(clients)
-        torch.save(server.get_model(), 'F:/project/model/16_personal_model')
+        torch.save(server.get_model(), 'F:/project/model/16_personal_model_L2')
         if round % 1 == 0:
             loss, accuracy = server.test()
             print(f'global_step:{round}\tloss:{loss.item()}\taccuracy:{accuracy}')
